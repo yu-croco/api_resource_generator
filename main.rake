@@ -1,6 +1,6 @@
 require "fileutils"
 
-namespace :api do
+namespace :api_resource_generator do
   desc 'Create API resource'
   task generate: :environment do
     api_version = ENV['API'].to_i
