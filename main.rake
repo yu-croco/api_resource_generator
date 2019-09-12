@@ -32,8 +32,8 @@ namespace :api_resource_generator do
   end
 
   base_methods.each do |method_name, path|
-    define_method(method_name) do
-      |api_version, custom=nil| Rails.root.join(path + suffix(api_version, custom))
+    define_method(method_name) do |api_version, custom=nil|
+      Rails.root.join(path + suffix(api_version, custom))
     end
   end
 
@@ -74,7 +74,10 @@ namespace :api_resource_generator do
     replace_api_version(target_path, api_version)
   end
 
-  # update API description in 
+  # update API description
+  # e.g.
+  # Controller / API::V9::CommentsController -> API::V10::CommentsController
+  # RSpec / get '/api/v9/comments/ -> get '/api/v10/comments/
   def replace_api_version(target_path, api_version)
     Pathname.glob(target_path + '*').each do |path|
       if File.directory?(path)
@@ -93,7 +96,6 @@ namespace :api_resource_generator do
     text_body.gsub!(/v#{api_version - 1}/, "v#{api_version}")
     path.write(text_body)
   end
-
 
   def auto_log(notice, target_path)
     puts "[#{notice}] #{target_path}"
@@ -124,17 +126,16 @@ namespace :api_resource_generator do
     prev_version = api_version - 1
     <<-EOS
 # [CAUTION]
-# ClearのAPIバージョン分けの性質上、前バージョンのディレクトリに存在する全てのリソースを新しいAPIバージョンのディレクトリで定義する必要があります。
-# 以下のサンプルを元に対応してください。
+# Please copy & paste your previous API version's resource to new one as following below.
 #
-# APIがv#{new_version}とv#{prev_version}でともに、v#{prev_version}の階層のControllerを使いたい場合
-# Controllerは増やさずに、Routeのconstraintsを変更する
+# If API is v#{new_version} and v#{prev_version} and you'd like to use Controller of v#{prev_version}
+# Please do not create new Controller. Instead, please change constraints on Route
 scope '/api/:version/contents',module: 'api/v#{prev_version}', constraints: {version: /(v#{prev_version}|v#{new_version})/}, defaults: {format: 'json'} do
   get    '/:id(.:format)', to: 'contents#show'
 end
 
-# APIのバージョン単位でアクセスしたい場合
-# 新しいAPIバージョンのnamespace内に前バージョンの構成をコピペする
+# If you would like to create new API version resource separately
+# Please copy and paste your previous API resources on new namespace.
 
 namespace 'api', defaults: {format: 'json'} do
   namespace 'v#{new_version}' do
